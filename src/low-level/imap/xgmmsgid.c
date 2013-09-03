@@ -12,9 +12,10 @@
 #include "mailimap_sender.h"
 #include "mailimap.h"
 
-enum {
-    MAILIMAP_XGMMSGID_TYPE_MSGID
-};
+int mailimap_has_xgmmsgid(mailimap * session)
+{
+  return mailimap_has_extension(session, "X-GM-EXT-1");
+}
 
 static int
 mailimap_xgmmsgid_extension_parse(int calling_parser, mailstream * fd,
@@ -55,7 +56,11 @@ static int fetch_data_xgmmsgid_parse(mailstream * fd,
     r = mailimap_uint64_parse(fd, buffer, &cur_token, &msgid);
     if (r != MAILIMAP_NO_ERROR)
         return r;
-    
+  
+    r = mailimap_space_parse(fd, buffer, &cur_token);
+    if (r != MAILIMAP_NO_ERROR)
+        return r;
+
     * indx = cur_token;
     * result = msgid;
     
@@ -131,3 +136,66 @@ struct mailimap_fetch_att * mailimap_fetch_att_new_xgmmsgid(void)
   
   return att;
 }
+
+
+int mailimap_fetch_xgmmsgid(mailimap * session,
+                            struct mailimap_set * set,
+                            clist ** results)
+{
+    struct mailimap_response * response;
+    int r;
+    int error_code;
+    
+    if (session->imap_state != MAILIMAP_STATE_SELECTED)
+        return MAILIMAP_ERROR_BAD_STATE;
+    
+    r = mailimap_send_current_tag(session);
+    if (r != MAILIMAP_NO_ERROR)
+        return r;
+    
+    r = mailimap_token_send(session->imap_stream, "FETCH");
+    if (r != MAILIMAP_NO_ERROR)
+        return r;
+    r = mailimap_space_send(session->imap_stream);
+    if (r != MAILIMAP_NO_ERROR)
+        return r;
+    r = mailimap_set_send(session->imap_stream, set);
+    if (r != MAILIMAP_NO_ERROR)
+        return r;
+    r = mailimap_space_send(session->imap_stream);
+    if (r != MAILIMAP_NO_ERROR)
+        return r;
+    
+    r = mailimap_token_send(session->imap_stream, "(X-GM-MSGID)");
+    if (r != MAILIMAP_NO_ERROR)
+        return r;
+    
+    r = mailimap_crlf_send(session->imap_stream);
+    if (r != MAILIMAP_NO_ERROR)
+      return r;
+    
+    if (mailstream_flush(session->imap_stream) == -1)
+        return MAILIMAP_ERROR_STREAM;
+    
+    if (mailimap_read_line(session) == NULL)
+        return MAILIMAP_ERROR_STREAM;
+   
+    r = mailimap_parse_response(session, &response);
+    if (r != MAILIMAP_NO_ERROR)
+        return r;
+    
+    error_code = response->rsp_resp_done->rsp_data.rsp_tagged->rsp_cond_state->rsp_type;
+    
+    *results = response->rsp_cont_req_or_resp_data_list;
+
+    mailimap_response_free(response);
+    
+    switch (error_code) {
+        case MAILIMAP_RESP_COND_STATE_OK:
+            return MAILIMAP_NO_ERROR;
+            
+        default:
+            return MAILIMAP_ERROR_FETCH;
+    }
+}
+
