@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 #include "clist.h"
 #include "mailimap_types_helper.h"
@@ -11,6 +12,24 @@
 #include "mailimap_parser.h"
 #include "mailimap_sender.h"
 #include "mailimap.h"
+
+struct mailimap_fetch_att * mailimap_fetch_att_new_xgmmsgid(void)
+{
+  char * keyword;
+  struct mailimap_fetch_att * att;
+
+  keyword = strdup("X-GM-MSGID");
+  if (keyword == NULL)
+    return NULL;
+
+  att = mailimap_fetch_att_new_extension(keyword);
+  if (att == NULL) {
+    free(keyword);
+    return NULL;
+  }
+
+  return att;
+}
 
 int mailimap_has_xgmmsgid(mailimap * session)
 {
@@ -36,14 +55,14 @@ struct mailimap_extension_api mailimap_extension_xgmmsgid = {
 
 static int fetch_data_xgmmsgid_parse(mailstream * fd,
                                       MMAPString * buffer, size_t * indx,
-                                      uint64_t * result, size_t progr_rate, progress_function * progr_fun)
+                                      char ** result, size_t progr_rate, progress_function * progr_fun)
 {
     size_t cur_token;
-    uint64_t msgid;
+    char  *msgid_str;
     int r;
     
     cur_token = * indx;
-    
+
     r = mailimap_token_case_insensitive_parse(fd, buffer,
                                               &cur_token, "X-GM-MSGID");
     if (r != MAILIMAP_NO_ERROR)
@@ -53,16 +72,16 @@ static int fetch_data_xgmmsgid_parse(mailstream * fd,
     if (r != MAILIMAP_NO_ERROR)
         return r;
     
-    r = mailimap_uint64_parse(fd, buffer, &cur_token, &msgid);
+    r = mailimap_astring_parse(fd, buffer, &cur_token, &msgid_str, progr_rate, progr_fun);
     if (r != MAILIMAP_NO_ERROR)
         return r;
-  
+
     r = mailimap_space_parse(fd, buffer, &cur_token);
     if (r != MAILIMAP_NO_ERROR)
         return r;
 
     * indx = cur_token;
-    * result = msgid;
+    * result = msgid_str;
     
     return MAILIMAP_NO_ERROR;
 }
@@ -74,8 +93,7 @@ mailimap_xgmmsgid_extension_parse(int calling_parser, mailstream * fd,
                                    size_t progr_rate, progress_function * progr_fun)
 {
     size_t cur_token;
-    uint64_t msgid;
-    uint64_t * data_msgid;
+    char * msgid;
     struct mailimap_extension_data * ext_data;
     int r;
     
@@ -88,20 +106,13 @@ mailimap_xgmmsgid_extension_parse(int calling_parser, mailstream * fd,
             r = fetch_data_xgmmsgid_parse(fd, buffer, &cur_token, &msgid, progr_rate, progr_fun);
             if (r != MAILIMAP_NO_ERROR)
               return r;
-            
-            data_msgid = malloc(sizeof(* data_msgid));
-            if (data_msgid == NULL) {
-              return MAILIMAP_ERROR_MEMORY;
-            }
-            * data_msgid = msgid;
-            
+                                
             ext_data = mailimap_extension_data_new(&mailimap_extension_xgmmsgid,
-                                                   MAILIMAP_XGMMSGID_TYPE_MSGID, data_msgid);
+                                                   MAILIMAP_XGMMSGID_TYPE_MSGID, msgid);
             if (ext_data == NULL) {
-                free(data_msgid);
                 return MAILIMAP_ERROR_MEMORY;
             }
-            
+
             * result = ext_data;
             * indx = cur_token;
             
@@ -112,31 +123,27 @@ mailimap_xgmmsgid_extension_parse(int calling_parser, mailstream * fd,
     }
 }
 
+/*
+    Free mailimap_extension_data created for the xgmmsgid extension, including anything pointed to by
+ ext_data->ext_data
+ 
+ */
 static void
 mailimap_xgmmsgid_extension_data_free(struct mailimap_extension_data * ext_data)
 {
-    free(ext_data->ext_data);
-    free(ext_data);
-}
+    if (ext_data == NULL)
+	return;
+    
+    switch (ext_data->ext_type)
+    {
+	case MAILIMAP_XGMMSGID_TYPE_MSGID:
+	    free(ext_data->ext_data); // msgid stashed in ext_data
+	    break;
+    }
+    
+    free (ext_data);
 
-struct mailimap_fetch_att * mailimap_fetch_att_new_xgmmsgid(void)
-{
-  char * keyword;
-  struct mailimap_fetch_att * att;
-  
-  keyword = strdup("X-GM-MSGID");
-  if (keyword == NULL)
-    return NULL;
-  
-  att = mailimap_fetch_att_new_extension(keyword);
-  if (att == NULL) {
-    free(keyword);
-    return NULL;
-  }
-  
-  return att;
 }
-
 
 int mailimap_fetch_xgmmsgid(mailimap * session,
                             struct mailimap_set * set,
@@ -198,4 +205,3 @@ int mailimap_fetch_xgmmsgid(mailimap * session,
             return MAILIMAP_ERROR_FETCH;
     }
 }
-
