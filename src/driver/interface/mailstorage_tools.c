@@ -75,7 +75,7 @@
 static void do_exec_command(int fd, const char *command,
     char *servername, uint16_t port)
 {
-  int i, maxopen;
+  long i, maxopen;
 #ifndef HAVE_SETENV
   char env_buffer[ENV_BUFFER_SIZE];
 #endif
@@ -127,7 +127,7 @@ static void do_exec_command(int fd, const char *command,
   
   maxopen = sysconf(_SC_OPEN_MAX);
   for (i=3; i < maxopen; i++)
-    close(i);
+    close((int) i);
   
 #ifdef TIOCNOTTY
   /* Detach from the controlling tty if we have one. Otherwise,
@@ -279,7 +279,7 @@ int mailstorage_generic_connect_with_local_address(mailsession_driver * driver,
   case CONNECTION_TYPE_COMMAND_TLS:
 #if HAVE_CFNETWORK
     if (mailstream_cfstream_enabled) {
-      int ssl_level = MAILSTREAM_CFSTREAM_SSL_LEVEL_SSLv3;
+      int ssl_level = MAILSTREAM_CFSTREAM_SSL_LEVEL_NEGOCIATED_SSL;
       mailstream_cfstream_set_ssl_level(stream, ssl_level);
       mailstream_cfstream_set_ssl_verification_mask(stream, MAILSTREAM_CFSTREAM_SSL_NO_VERIFICATION);
       r = mailstream_cfstream_set_ssl_enabled(stream, 1);
@@ -301,7 +301,11 @@ int mailstorage_generic_connect_with_local_address(mailsession_driver * driver,
   
   if (stream == NULL) {
     res = MAIL_ERROR_STREAM;
+#ifdef WIN32
+	closesocket(fd);
+#else
     close(fd);
+#endif
     goto err;
   }
 

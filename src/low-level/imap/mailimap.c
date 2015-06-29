@@ -1551,14 +1551,14 @@ static int sasl_getsimple(void * context, int id,
     if (result != NULL)
       * result = session->imap_sasl.sasl_login;
     if (len != NULL)
-      * len = strlen(session->imap_sasl.sasl_login);
+      * len = (unsigned) strlen(session->imap_sasl.sasl_login);
     return SASL_OK;
     
   case SASL_CB_AUTHNAME:
     if (result != NULL)
       * result = session->imap_sasl.sasl_auth_name;
     if (len != NULL)
-      * len = strlen(session->imap_sasl.sasl_auth_name);
+      * len = (unsigned) strlen(session->imap_sasl.sasl_auth_name);
     return SASL_OK;
   }
   
@@ -1741,12 +1741,12 @@ int mailimap_authenticate(mailimap * session, const char * auth_type,
     }
     
     if (got_response) {
-      size_t response_len;
+      unsigned int response_len;
       char * decoded;
       unsigned int decoded_len;
       unsigned int max_decoded;
       
-      response_len = strlen(response_base64);
+      response_len = (unsigned int) strlen(response_base64);
       max_decoded = response_len * 3 / 4;
       decoded = malloc(max_decoded + 1);
       if (decoded == NULL) {
@@ -1964,53 +1964,7 @@ int
 mailimap_search(mailimap * session, const char * charset,
     struct mailimap_search_key * key, clist ** result)
 {
-#if 0
-  struct mailimap_response * response;
-  int r;
-  int error_code;
-
-  if (session->imap_state != MAILIMAP_STATE_SELECTED)
-    return MAILIMAP_ERROR_BAD_STATE;
-
-  r = mailimap_send_current_tag(session);
-  if (r != MAILIMAP_NO_ERROR)
-	return r;
-
-  r = mailimap_search_send(session->imap_stream, charset, key);
-  if (r != MAILIMAP_NO_ERROR)
-	return r;
-
-  r = mailimap_crlf_send(session->imap_stream);
-  if (r != MAILIMAP_NO_ERROR)
-	return r;
-
-  if (mailstream_flush(session->imap_stream) == -1)
-    return MAILIMAP_ERROR_STREAM;
-
-  if (mailimap_read_line(session) == NULL)
-    return MAILIMAP_ERROR_STREAM;
-
-  r = mailimap_parse_response(session, &response);
-  if (r != MAILIMAP_NO_ERROR)
-    return r;
-
-  * result = session->imap_response_info->rsp_search_result;
-  session->imap_response_info->rsp_search_result = NULL;
-
-  error_code = response->rsp_resp_done->rsp_data.rsp_tagged->rsp_cond_state->rsp_type;
-
-  mailimap_response_free(response);
-
-  switch (error_code) {
-  case MAILIMAP_RESP_COND_STATE_OK:
-    return MAILIMAP_NO_ERROR;
-
-  default:
-    return MAILIMAP_ERROR_SEARCH;
-  }
-#else
   return mailimap_search_modseq(session, charset, key, result, NULL);
-#endif
 }
 
 LIBETPAN_EXPORT
@@ -2018,53 +1972,19 @@ int
 mailimap_uid_search(mailimap * session, const char * charset,
     struct mailimap_search_key * key, clist ** result)
 {
-#if 0
-  struct mailimap_response * response;
-  int r;
-  int error_code;
-
-  if (session->imap_state != MAILIMAP_STATE_SELECTED)
-    return MAILIMAP_ERROR_BAD_STATE;
-
-  r = mailimap_send_current_tag(session);
-  if (r != MAILIMAP_NO_ERROR)
-    return r;
-
-  r = mailimap_uid_search_send(session->imap_stream, charset, key);
-  if (r != MAILIMAP_NO_ERROR)
-    return r;
-
-  r = mailimap_crlf_send(session->imap_stream);
-  if (r != MAILIMAP_NO_ERROR)
-    return r;
-
-  if (mailstream_flush(session->imap_stream) == -1)
-    return MAILIMAP_ERROR_STREAM;
-
-  if (mailimap_read_line(session) == NULL)
-    return MAILIMAP_ERROR_STREAM;
-
-  r = mailimap_parse_response(session, &response);
-  if (r != MAILIMAP_NO_ERROR)
-    return r;
-
-  * result = session->imap_response_info->rsp_search_result;
-  session->imap_response_info->rsp_search_result = NULL;
-
-  error_code = response->rsp_resp_done->rsp_data.rsp_tagged->rsp_cond_state->rsp_type;
-
-  mailimap_response_free(response);
-
-  switch (error_code) {
-  case MAILIMAP_RESP_COND_STATE_OK:
-    return MAILIMAP_NO_ERROR;
-
-  default:
-    return MAILIMAP_ERROR_UID_SEARCH;
-  }
-#else
   return mailimap_uid_search_modseq(session, charset, key, result, NULL);
-#endif
+}
+
+LIBETPAN_EXPORT int mailimap_search_literalplus(mailimap * session, const char * charset,
+                                                struct mailimap_search_key * key, clist ** result)
+{
+  return mailimap_search_literalplus_modseq(session, charset, key, result, NULL);
+}
+
+LIBETPAN_EXPORT int mailimap_uid_search_literalplus(mailimap * session, const char * charset,
+                                                    struct mailimap_search_key * key, clist ** result)
+{
+  return mailimap_uid_search_literalplus_modseq(session, charset, key, result, NULL);
 }
 
 LIBETPAN_EXPORT
@@ -2074,62 +1994,6 @@ void mailimap_search_result_free(clist * search_result)
   clist_free(search_result);
 }
 
-#if 0
-LIBETPAN_EXPORT
-int
-mailimap_select(mailimap * session, const char * mb)
-{
-  struct mailimap_response * response;
-  int r;
-  int error_code;
-
-  if ((session->imap_state != MAILIMAP_STATE_AUTHENTICATED) &&
-      (session->imap_state != MAILIMAP_STATE_SELECTED))
-    return MAILIMAP_ERROR_BAD_STATE;
-
-  r = mailimap_send_current_tag(session);
-  if (r != MAILIMAP_NO_ERROR)
-    return r;
-
-  r = mailimap_select_send(session->imap_stream, mb);
-  if (r != MAILIMAP_NO_ERROR)
-    return r;
-  
-  r = mailimap_crlf_send(session->imap_stream);
-  if (r != MAILIMAP_NO_ERROR)
-    return r;
-
-  if (mailstream_flush(session->imap_stream) == -1)
-    return MAILIMAP_ERROR_STREAM;
-
-  if (mailimap_read_line(session) == NULL)
-    return MAILIMAP_ERROR_STREAM;
-
-  if (session->imap_selection_info != NULL)
-    mailimap_selection_info_free(session->imap_selection_info);
-  session->imap_selection_info = mailimap_selection_info_new();
-
-  r = mailimap_parse_response(session, &response);
-  if (r != MAILIMAP_NO_ERROR)
-    return r;
-
-  error_code = response->rsp_resp_done->rsp_data.rsp_tagged->rsp_cond_state->rsp_type;
-
-  mailimap_response_free(response);
-
-  switch (error_code) {
-  case MAILIMAP_RESP_COND_STATE_OK:
-    session->imap_state = MAILIMAP_STATE_SELECTED;
-    return MAILIMAP_NO_ERROR;
-
-  default:
-    mailimap_selection_info_free(session->imap_selection_info);
-    session->imap_selection_info = NULL;
-    session->imap_state = MAILIMAP_STATE_AUTHENTICATED;
-    return MAILIMAP_ERROR_SELECT;
-  }
-}
-#else
 LIBETPAN_EXPORT
 int
 mailimap_select(mailimap * session, const char * mb)
@@ -2137,7 +2001,6 @@ mailimap_select(mailimap * session, const char * mb)
 	uint64_t dummy;
 	return mailimap_select_condstore_optional(session, mb, 0, &dummy);
 }
-#endif
 
 LIBETPAN_EXPORT
 int
@@ -2446,7 +2309,12 @@ int mailimap_send_current_tag(mailimap * session)
   int r;
   
   session->imap_tag ++;
-  snprintf(tag_str, 15, "%i", session->imap_tag);
+  
+  if(mailimap_is_163_workaround_enabled(session))
+    snprintf(tag_str, 15, "C%i", session->imap_tag);
+  else
+    snprintf(tag_str, 15, "%i", session->imap_tag);	
+  
 
   r = mailimap_tag_send(session->imap_stream, tag_str);
   if (r != MAILIMAP_NO_ERROR)
@@ -2521,7 +2389,11 @@ int mailimap_parse_response(mailimap * session,
     return MAILIMAP_ERROR_FATAL;
   }
 
-  snprintf(tag_str, 15, "%i", session->imap_tag);
+  if(mailimap_is_163_workaround_enabled(session))
+    snprintf(tag_str, 15, "C%i", session->imap_tag);
+  else
+    snprintf(tag_str, 15, "%i", session->imap_tag);
+    
   if (strcmp(response->rsp_resp_done->rsp_data.rsp_tagged->rsp_tag, tag_str) != 0) {
     mailimap_response_free(response);
     return MAILIMAP_ERROR_PROTOCOL;
@@ -2639,7 +2511,7 @@ mailimap * mailimap_new(size_t imap_progr_rate,
 
   f->imap_logger = NULL;
   f->imap_logger_context = NULL;
-
+  f->is_163_workaround_enabled = 0;
   return f;
   
  free_stream_buffer:
@@ -2726,4 +2598,14 @@ void mailimap_set_logger(mailimap * session, void (* logger)(mailimap * session,
 {
   session->imap_logger = logger;
   session->imap_logger_context = logger_context;
+}
+
+LIBETPAN_EXPORT    
+void mailimap_set_163_workaround_enabled(mailimap * session, int enabled) {
+	session->is_163_workaround_enabled = enabled;
+}
+
+LIBETPAN_EXPORT
+int mailimap_is_163_workaround_enabled(mailimap * session) {
+	return session->is_163_workaround_enabled;
 }

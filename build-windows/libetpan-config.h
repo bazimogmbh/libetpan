@@ -1,6 +1,12 @@
 #ifndef LIBETPAN_CONFIG_H
 #define LIBETPAN_CONFIG_H
 
+#ifdef _MSC_VER
+#ifndef WIN32
+#define WIN32 1
+#endif
+#endif
+
 #ifdef WIN32
 #	define PATH_MAX 512
 
@@ -60,7 +66,7 @@
 		typedef INT64 int64_t;
 #	endif
 #	if !defined(pid_t)
-		typedef DWORD pid_t;
+		typedef int pid_t;
 #	endif
 
 #	if !defined(caddr_t)
@@ -74,7 +80,9 @@
 #include <limits.h>
 #ifdef _MSC_VER
 #	define MMAP_UNAVAILABLE
+# ifndef __cplusplus
 #	define inline __inline
+# endif
 #else
 #	include <sys/param.h>
 #endif

@@ -1717,7 +1717,7 @@ static int collect_recipient(char * recipient, size_t size,
   int res;
 
   * recipient = '\0';
-  remaining = size;
+  remaining = size - 1;
   
 	mailimf_single_fields_init(&single_fields, fields);
   
@@ -3003,9 +3003,9 @@ int mailprivacy_gnupg_set_encryption_id(struct mailprivacy * privacy,
   }
   
   key.data = buf;
-  key.len = strlen(buf) + 1;
+  key.len = (unsigned int) strlen(buf) + 1;
   value.data = passphrase;
-  value.len = strlen(passphrase) + 1;
+  value.len = (unsigned int) strlen(passphrase) + 1;
   
   r = chash_set(passphrase_hash, &key, &value, NULL);
   if (r < 0) {
@@ -3034,7 +3034,7 @@ static char * get_passphrase(struct mailprivacy * privacy,
     return NULL;
   
   key.data = buf;
-  key.len = strlen(buf) + 1;
+  key.len = (unsigned int) strlen(buf) + 1;
   
   r = chash_get(passphrase_hash, &key, &value);
   if (r < 0)

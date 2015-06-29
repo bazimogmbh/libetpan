@@ -686,6 +686,9 @@ static int imapdriver_unseen_number(mailsession * session, const char * mb,
   uint32_t unseen;
   int r;
   
+  messages = 0;
+  recent = 0;
+  unseen = 0;
   r = imapdriver_status_folder(session, mb, &messages, &recent, &unseen);
   if (r != MAIL_NO_ERROR)
     return r;
@@ -1207,12 +1210,12 @@ static int imapdriver_get_message_by_uid(mailsession * session,
   if (uid == NULL)
     return MAIL_ERROR_INVAL;
 
-  uidvalidity = strtoul(uid, &p1, 10);
+  uidvalidity = (uint32_t) strtoul(uid, &p1, 10);
   if (p1 == uid || * p1 != '-')
     return MAIL_ERROR_INVAL;
 
   p1++;
-  num = strtoul(p1, &p2, 10);
+  num = (uint32_t) strtoul(p1, &p2, 10);
   if (p2 == p1 || * p2 != '\0')
     return MAIL_ERROR_INVAL;
   
@@ -1233,9 +1236,12 @@ static int imapdriver_login_sasl(mailsession * session,
 {
   int r;
 
-  r = mailimap_authenticate(get_imap_session(session),
-      auth_type, server_fqdn, local_ip_port, remote_ip_port,
-      login, auth_name, password, realm);
+  if (strcasecmp(auth_type, "xoauth2") == 0)
+    r = mailimap_oauth2_authenticate(get_imap_session(session), auth_name, password);
+  else
+    r = mailimap_authenticate(get_imap_session(session),
+        auth_type, server_fqdn, local_ip_port, remote_ip_port,
+        login, auth_name, password, realm);
   
   return imap_error_to_mail_error(r);
 }

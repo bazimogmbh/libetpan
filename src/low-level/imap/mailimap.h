@@ -490,6 +490,48 @@ mailimap_uid_search(mailimap * session, const char * charset,
     struct mailimap_search_key * key, clist ** result);
 
 /*
+ mailimap_search_literalplus()
+
+ All mails that match the given criteria will be returned
+ their numbers in the result list.
+ LITERAL+ feature will be used to send strings.
+
+ @param session  IMAP session
+ @param charset  This indicates the charset of the strings that appears
+ in the searching criteria
+ @param key      This is the searching criteria
+ @param result   The result is a clist of (uint32_t *) and will be
+ stored in (* result).
+
+ @return the return code is one of MAILIMAP_ERROR_XXX or
+ MAILIMAP_NO_ERROR codes
+*/
+
+LIBETPAN_EXPORT int mailimap_search_literalplus(mailimap * session, const char * charset,
+                                                struct mailimap_search_key * key, clist ** result);
+
+/*
+ mailimap_uid_search_literalplus()
+
+ All mails that match the given criteria will be returned
+ their numbers in the result list.
+ LITERAL+ feature will be used to send strings.
+
+ @param session  IMAP session
+ @param charset  This indicates the charset of the strings that appears
+ in the searching criteria
+ @param key      This is the searching criteria
+ @param result   The result is a clist of (uint32_t *) and will be
+ stored in (* result).
+ 
+ @return the return code is one of MAILIMAP_ERROR_XXX or
+ MAILIMAP_NO_ERROR codes
+*/
+
+LIBETPAN_EXPORT int mailimap_uid_search_literalplus(mailimap * session, const char * charset,
+                                                    struct mailimap_search_key * key, clist ** result);
+
+/*
    mailimap_search_result_free()
 
    This function will free the result of the a search.
@@ -760,6 +802,16 @@ time_t mailimap_get_timeout(mailimap * session);
 LIBETPAN_EXPORT
 void mailimap_set_logger(mailimap * session, void (* logger)(mailimap * session, int log_type,
     const char * str, size_t size, void * context), void * logger_context);
+
+#ifndef LIBETPAN_HAS_MAILIMAP_163_WORKAROUND
+  #define LIBETPAN_HAS_MAILIMAP_163_WORKAROUND	1
+#endif
+
+LIBETPAN_EXPORT
+int mailimap_is_163_workaround_enabled(mailimap * session);
+    
+LIBETPAN_EXPORT    
+void mailimap_set_163_workaround_enabled(mailimap * session, int enabled);
 
 #ifdef __cplusplus
 }

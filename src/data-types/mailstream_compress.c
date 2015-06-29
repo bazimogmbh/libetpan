@@ -99,7 +99,7 @@ mailstream_low * mailstream_low_compress_open(mailstream_low * ms)
   mailstream_low * s;
     
   /* stores the original mailstream */
-  struct mailstream_compress_data * compress_data = malloc(sizeof(* compress_data));
+  struct mailstream_compress_data * compress_data = calloc(1, sizeof(* compress_data));
   if (compress_data == NULL)
     goto err;
 
@@ -166,7 +166,7 @@ static ssize_t mailstream_low_compress_read(mailstream_low * s, void * buf, size
   do {
     /* if there is no compressed data, read more */
     if (strm->avail_in == 0) {
-      int read = data->ms->driver->mailstream_read(data->ms, data->input_buf, CHUNK_SIZE);
+      int read = (int) data->ms->driver->mailstream_read(data->ms, data->input_buf, CHUNK_SIZE);
       if (read <= 0) {
         return read;
       }
@@ -176,7 +176,7 @@ static ssize_t mailstream_low_compress_read(mailstream_low * s, void * buf, size
 
     /* set the output buffer */
     strm->next_out = buf;
-    strm->avail_out = count;
+    strm->avail_out = (int) count;
 
     /* uncompress any waiting data */
     zr = inflate(strm, Z_NO_FLUSH);
@@ -209,15 +209,17 @@ static ssize_t mailstream_low_compress_write(mailstream_low * s, const void * bu
 
   strm->next_in = (Bytef *)buf;
   /* we won't try to compress more than CHUNK_SIZE at a time so we always have enough buffer space */
-  int compress_len = MIN(count, CHUNK_SIZE);
+  int compress_len = MIN((int) count, CHUNK_SIZE);
   strm->avail_in = compress_len;
   strm->avail_out = CHUNK_SIZE;
   strm->next_out = data->output_buf;
 
   zr = deflate(strm, Z_PARTIAL_FLUSH);
-  assert(zr == Z_OK);
   if (zr < 0) {
-    printf("Error deflating: %d %s", zr, strm->msg);
+    //STREAM_LOG(s, 1, "<<<<<<< Error deflating ");
+    //STREAM_LOG(s, 1, strm->msg);
+    //STREAM_LOG(s, 1, " <<<<<<<");
+    //STREAM_LOG(s, 1, "\n");
     return -1;
   }
   
@@ -244,7 +246,7 @@ static int mailstream_low_compress_close(mailstream_low * s)
 {
 #if HAVE_ZLIB
   compress_data * data = s->data;
-  return data->ms->driver->mailstream_close(data->ms);
+  return mailstream_low_close(data->ms);
 #else
   return 0;
 #endif
@@ -274,7 +276,7 @@ static void mailstream_low_compress_free(mailstream_low * s)
 {
 #if HAVE_ZLIB
   compress_data * data = s->data;
-  data->ms->driver->mailstream_free(data->ms);
+  mailstream_low_free(data->ms);
   if (data->compress_stream) {
     deflateEnd(data->compress_stream);
     free(data->compress_stream);

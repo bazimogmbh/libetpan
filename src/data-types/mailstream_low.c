@@ -55,6 +55,9 @@
 #ifdef WIN32
 #	include "win_etpan.h"
 #endif
+#if defined(ANDROID) || defined(__ANDROID__)
+#include <sys/select.h>
+#endif
 
 #include "mailstream_cfstream.h"
 #include "mailstream_compress.h"
@@ -93,7 +96,7 @@ static inline void mailstream_logger_internal(mailstream_low * s, int is_stream_
       f = fopen(LOG_FILE, "a"); \
       umask(old_mask); \
       if (f != NULL) { \
-        int nmemb; \
+        size_t nmemb; \
         maillock_write_lock(LOG_FILE, fileno(f)); \
         nmemb = fwrite((buf), 1, (size), f); \
         maillock_write_unlock(LOG_FILE, fileno(f)); \
@@ -120,7 +123,7 @@ static inline void mailstream_logger_internal(mailstream_low * s, int is_stream_
       f = fopen(LOG_FILE, "a"); \
       umask(old_mask); \
       if (f != NULL) { \
-        int nmemb; \
+        size_t nmemb; \
         maillock_write_lock(LOG_FILE, fileno(f)); \
         nmemb = fwrite((buf), 1, (size), f); \
         maillock_write_unlock(LOG_FILE, fileno(f)); \
@@ -147,7 +150,7 @@ static inline void mailstream_logger_internal(mailstream_low * s, int is_stream_
       f = fopen(LOG_FILE, "a"); \
       umask(old_mask); \
       if (f != NULL) { \
-        int nmemb; \
+        size_t nmemb; \
         maillock_write_lock(LOG_FILE, fileno(f)); \
         nmemb = fputs((str), f); \
         maillock_write_unlock(LOG_FILE, fileno(f)); \

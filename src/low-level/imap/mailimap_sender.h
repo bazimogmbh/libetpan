@@ -55,11 +55,6 @@ int mailimap_authenticate_send(mailstream * fd,
 int mailimap_authenticate_resp_send(mailstream * fd,
 				const char * base64);
 
-int mailimap_oauth2_authenticate_send(mailimap * session,
-				const char * auth_user,
-				const char * access_token);
-
-
 int mailimap_noop_send(mailstream * fd);
 
 int mailimap_logout_send(mailstream * fd);
@@ -118,10 +113,18 @@ int
 mailimap_uid_search_send(mailstream * fd, const char * charset,
 			 struct mailimap_search_key * key);
 
+int mailimap_search_literalplus_send(mailstream * fd, const char * charset,
+                                     struct mailimap_search_key * key);
+
+int mailimap_uid_search_literalplus_send(mailstream * fd, const char * charset,
+                                         struct mailimap_search_key * key);
 
 int mailimap_search_key_send(mailstream * fd,
                              struct mailimap_search_key * key);
-  
+
+int mailimap_search_key_literalplus_send(mailstream * fd,
+                                         struct mailimap_search_key * key);
+
 int
 mailimap_select_send(mailstream * fd, const char * mb, int condstore);
 
@@ -157,15 +160,15 @@ mailimap_literal_send(mailstream * fd, const char * literal,
 		      progress_function * progr_fun);
 
 int
-mailimap_literal_count_send(mailstream * fd, uint32_t count);
+mailimap_literal_count_send(mailstream * fd, size_t count);
 
 int
-mailimap_literal_data_send(mailstream * fd, const char * literal, uint32_t len,
+mailimap_literal_data_send(mailstream * fd, const char * literal, size_t len,
 			   size_t progr_rate,
 			   progress_function * progr_fun);
 
 int
-mailimap_literal_data_send_with_context(mailstream * fd, const char * literal, uint32_t len,
+mailimap_literal_data_send_with_context(mailstream * fd, const char * literal, size_t len,
                                         mailprogress_function * progr_fun,
                                         void * context);
 

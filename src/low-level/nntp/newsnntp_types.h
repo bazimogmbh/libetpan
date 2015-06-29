@@ -83,7 +83,7 @@ struct newsnntp
 
   int nntp_readonly;
 
-  uint32_t nntp_progr_rate;
+  size_t nntp_progr_rate;
   progress_function * nntp_progr_fun;
   
   MMAPString * nntp_stream_buffer;
@@ -95,6 +95,9 @@ struct newsnntp
   
   void (* nntp_logger)(newsnntp * session, int log_type, const char * str, size_t size, void * context);
   void * nntp_logger_context;
+  
+  mailprogress_function * nntp_progress_fun;
+  void * nntp_progress_context;
 };
 
 struct newsnntp_group_info
@@ -108,7 +111,7 @@ struct newsnntp_group_info
 
 struct newsnntp_group_time {
   char * grp_name;
-  uint32_t grp_date;
+  time_t grp_date;
   char * grp_email;
 };
 

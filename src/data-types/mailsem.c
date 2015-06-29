@@ -43,7 +43,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#ifndef _MSC_VER
 #include <unistd.h>
+#endif
 
 #ifdef LIBETPAN_REENTRANT
 #if defined(HAVE_PTHREAD_H) && !defined(IGNORE_PTHREAD_H)
@@ -235,6 +237,7 @@ static int mailsem_internal_post(struct mailsem_internal * s)
 
 #endif
 
+LIBETPAN_EXPORT
 struct mailsem * mailsem_new(void)
 {
   struct mailsem * sem;
@@ -262,6 +265,7 @@ struct mailsem * mailsem_new(void)
   return NULL;
 }
 
+LIBETPAN_EXPORT
 void mailsem_free(struct mailsem * sem)
 {
   mailsem_internal_destroy(sem->sem_sem);
@@ -269,11 +273,13 @@ void mailsem_free(struct mailsem * sem)
   free(sem);
 }
 
+LIBETPAN_EXPORT
 int mailsem_up(struct mailsem * sem)
 {
   return mailsem_internal_post(sem->sem_sem);
 }
 
+LIBETPAN_EXPORT
 int mailsem_down(struct mailsem * sem)
 {
   return mailsem_internal_wait(sem->sem_sem);

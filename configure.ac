@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 m4_define([maj_version], [1])
-m4_define([min_version], [5])
+m4_define([min_version], [6])
 m4_define([api_current], [18])
 m4_define([api_revision], [0])
 m4_define([api_compatibility], [17])
@@ -228,7 +228,7 @@ if test "x$with_gnutls" != "xno"; then
   fi
   GNUTLSLIB=""
   AC_CHECK_HEADER(gnutls/gnutls.h, [
-   AC_CHECK_LIB(gnutls, gnutls_global_deinit, with_gnutls=yes, [GNUTLSLIB="-lgnutls -lgcrypt -lgpg-error -lz"])
+   AC_CHECK_LIB(gnutls, gnutls_global_deinit, with_gnutls=yes, [GNUTLSLIB="-lgnutls"])
   ])
   if test "x$with_gnutls" != "xyes"; then
    CPPFLAGS="$OCPPFLAGS"
@@ -782,3 +782,4 @@ AC_SUBST(cfg_files)
 AC_OUTPUT
 
 cp -f ${crd}/src/main/libetpan_version.h ${crd}/build-windows
+cd build-windows ; ./gen-public-headers.sh > build_headers.list ; cd ..

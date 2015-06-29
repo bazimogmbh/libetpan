@@ -95,7 +95,11 @@ int mailsmtp_ssl_connect_with_callback(mailsmtp * session,
 
   stream = mailstream_ssl_open_with_callback_timeout(s, session->smtp_timeout, callback, data);
   if (stream == NULL) {
-    close(s);
+#ifdef WIN32
+	closesocket(s);
+#else
+	close(s);
+#endif
     return MAILSMTP_ERROR_SSL;
   }
 
@@ -126,5 +130,5 @@ static int mailsmtp_cfssl_connect_ssl_level(mailsmtp * session,
 static int mailsmtp_cfssl_connect(mailsmtp * session,
                                   const char * server, uint16_t port)
 {
-    return mailsmtp_cfssl_connect_ssl_level(session, server, port, MAILSTREAM_CFSTREAM_SSL_LEVEL_SSLv3);
+    return mailsmtp_cfssl_connect_ssl_level(session, server, port, MAILSTREAM_CFSTREAM_SSL_LEVEL_NEGOCIATED_SSL);
 }

@@ -108,7 +108,9 @@ newsnntp * newsnntp_new(size_t progr_rate, progress_function * progr_fun)
     goto free_stream_buffer;
 
 	f->nntp_timeout = 0;
-
+	f->nntp_progress_fun = NULL;
+	f->nntp_progress_context = NULL;
+  
   f->nntp_logger = NULL;
   f->nntp_logger_context = NULL;
 
@@ -520,7 +522,7 @@ void newsnntp_list_free(clist * l)
 
 /* ******************** POST ******************************** */
 
-static void send_data(newsnntp * f, const char * message, uint32_t size)
+static void send_data(newsnntp * f, const char * message, size_t size)
 {
   mailstream_send_data(f->nntp_stream, message, size,
 		       f->nntp_progr_rate, f->nntp_progr_fun);
@@ -1360,6 +1362,9 @@ int newsnntp_date(newsnntp * f, struct tm * tm)
     return NEWSNNTP_ERROR_STREAM;
 
   r = parse_response(f, response);
+  if (f->nntp_response == NULL) {
+    return NEWSNNTP_ERROR_UNEXPECTED_RESPONSE;
+  }
 
   switch (r) {
   case 111:
@@ -1812,7 +1817,7 @@ static int parse_response(newsnntp * f, char * response)
 {
   int code;
 
-  code = strtol(response, &response, 10);
+  code = (int) strtol(response, &response, 10);
 
   if (response == NULL) {
     f->nntp_response = NULL;
@@ -1840,7 +1845,7 @@ static char * read_multiline(newsnntp * f, size_t size,
 {
   return mailstream_read_multiline(f->nntp_stream, size,
 				   f->nntp_stream_buffer, multiline_buffer,
-				   f->nntp_progr_rate, f->nntp_progr_fun, NULL, NULL);
+				   f->nntp_progr_rate, f->nntp_progr_fun, f->nntp_progress_fun, f->nntp_progress_context);
 }
 
 
@@ -1861,15 +1866,15 @@ static int parse_group_info(char * response,
 
   line = response;
 
-  count = strtoul(line, &line, 10);
+  count = (uint32_t) strtoul(line, &line, 10);
   if (!parse_space(&line))
     return FALSE;
 
-  first = strtoul(line, &line, 10);
+  first = (uint32_t) strtoul(line, &line, 10);
   if (!parse_space(&line))
     return FALSE;
 
-  last = strtoul(line, &line, 10);
+  last = (uint32_t) strtoul(line, &line, 10);
   if (!parse_space(&line))
     return FALSE;
 
@@ -1918,11 +1923,11 @@ static clist * read_groups_list(newsnntp * f)
     group_name = line;
     line = p;
 
-    last = strtol(line, &line, 10);
+    last = (uint32_t)strtol(line, &line, 10);
     if (!parse_space(&line))
       continue;
 
-    first = strtol(line, &line, 10);
+    first = (uint32_t)strtol(line, &line, 10);
     if (!parse_space(&line))
       continue;
 
@@ -2133,7 +2138,7 @@ static clist * read_distrib_default_value_list(newsnntp * f)
 
     p = line;
 
-    weight = strtoul(p, &remaining, 10);
+    weight = (uint32_t)strtoul(p, &remaining, 10);
     p = remaining;
     parse_space(&p);
       
@@ -2319,7 +2324,7 @@ static clist * read_xhdr_resp_list(newsnntp * f)
     if (mailstream_is_end_multiline(line))
       break;
     
-    article = strtoul(line, &line, 10);
+    article = (uint32_t) strtoul(line, &line, 10);
     if (!parse_space(&line))
       continue;
     
@@ -2555,10 +2560,15 @@ static inline void nntp_logger(mailstream * s, int log_type,
   session->nntp_logger(session, log_type, str, size, session->nntp_logger_context);
 }
 
-LIBETPAN_EXPORT
 void newsnntp_set_logger(newsnntp * session, void (* logger)(newsnntp * session, int log_type,
     const char * str, size_t size, void * context), void * logger_context)
 {
   session->nntp_logger = logger;
   session->nntp_logger_context = logger_context;
+}
+
+void newsnntp_set_progress_callback(newsnntp * f, mailprogress_function * progr_fun, void * context)
+{
+	f->nntp_progress_fun = progr_fun;
+	f->nntp_progress_context = context;
 }

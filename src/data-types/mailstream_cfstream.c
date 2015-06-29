@@ -51,7 +51,11 @@
 #else
 #define CFSTREAM_ENABLED_DEFAULT 0
 #endif
+
+LIBETPAN_EXPORT
 int mailstream_cfstream_enabled = CFSTREAM_ENABLED_DEFAULT;
+
+LIBETPAN_EXPORT
 int mailstream_cfstream_voip_enabled = 0;
 
 enum {
@@ -179,11 +183,13 @@ static void cfstream_data_free(struct mailstream_cfstream_data * cfstream_data)
 static void cfstream_data_close(struct mailstream_cfstream_data * cfstream_data)
 {
   if (cfstream_data->writeStream != NULL) {
+    CFWriteStreamSetClient(cfstream_data->writeStream, kCFStreamEventNone, NULL, NULL);
     CFWriteStreamClose(cfstream_data->writeStream);
     CFRelease(cfstream_data->writeStream);
     cfstream_data->writeStream = NULL;
   }
   if (cfstream_data->readStream != NULL) {
+    CFReadStreamSetClient(cfstream_data->readStream, kCFStreamEventNone, NULL, NULL);
     CFReadStreamClose(cfstream_data->readStream);
     CFRelease(cfstream_data->readStream);
     cfstream_data->readStream = NULL;
@@ -711,6 +717,17 @@ static int wait_runloop(mailstream_low * s, int wait_state)
     int r;
     int done;
     
+    if (cfstream_data->cancelled) {
+      error = WAIT_RUNLOOP_EXIT_CANCELLED;
+      break;
+    }
+    if (cfstream_data->state == STATE_WAIT_IDLE) {
+      if (cfstream_data->idleInterrupted) {
+        error = WAIT_RUNLOOP_EXIT_INTERRUPTED;
+        break;
+      }
+    }
+
     done = 0;
     switch (cfstream_data->state) {
       case STATE_OPEN_READ_DONE:
@@ -773,16 +790,6 @@ static int wait_runloop(mailstream_low * s, int wait_state)
     if (r == kCFRunLoopRunTimedOut) {
       error = WAIT_RUNLOOP_EXIT_TIMEOUT;
       break;
-    }
-    if (cfstream_data->cancelled) {
-      error = WAIT_RUNLOOP_EXIT_CANCELLED;
-      break;
-    }
-    if (cfstream_data->state == STATE_WAIT_IDLE) {
-      if (cfstream_data->idleInterrupted) {
-        error = WAIT_RUNLOOP_EXIT_INTERRUPTED;
-        break;
-      }
     }
   }
   
@@ -913,6 +920,7 @@ int mailstream_cfstream_set_ssl_enabled(mailstream * s, int ssl_enabled)
 #if HAVE_CFNETWORK
   struct mailstream_cfstream_data * cfstream_data;
   int r;
+  CFIndex count;
   
   cfstream_data = (struct mailstream_cfstream_data *) s->low->data;
   cfstream_data->ssl_enabled = ssl_enabled;
@@ -963,12 +971,13 @@ int mailstream_cfstream_set_ssl_enabled(mailstream * s, int ssl_enabled)
 		CFReadStreamSetProperty(cfstream_data->readStream, kCFStreamPropertySSLSettings, settings);
 		CFWriteStreamSetProperty(cfstream_data->writeStream, kCFStreamPropertySSLSettings, settings);
     CFRelease(settings);
-    
-    //fprintf(stderr, "is not ssl\n");
   }
   
   // We need to investigate more about how to establish a STARTTLS connection.
   // For now, wait until we get the certificate chain.
+  
+  CFArrayRef certs;
+  SecTrustRef secTrust;
   while (1) {
     r = wait_runloop(s->low, STATE_WAIT_SSL);
     if (r != WAIT_RUNLOOP_EXIT_NO_ERROR) {
@@ -978,12 +987,31 @@ int mailstream_cfstream_set_ssl_enabled(mailstream * s, int ssl_enabled)
       return -1;
     if (cfstream_data->readSSLResult < 0)
       return -1;
-    CFArrayRef certs = CFReadStreamCopyProperty(cfstream_data->readStream, kCFStreamPropertySSLPeerCertificates);
-    if (certs == NULL) {
+    
+    secTrust = (SecTrustRef)CFReadStreamCopyProperty(cfstream_data->readStream, kCFStreamPropertySSLPeerTrust);
+    if (secTrust) {
+        // SecTrustEvaluate() needs to be called before SecTrustGetCertificateCount() in Mac OS X <= 10.8
+        SecTrustEvaluate(secTrust, NULL);
+        count = SecTrustGetCertificateCount(secTrust);
+        CFRelease(secTrust);
+    }
+    else {
+        certs = CFReadStreamCopyProperty(cfstream_data->readStream, kCFStreamPropertySSLPeerCertificates);
+        if (certs) {
+            count = CFArrayGetCount(certs);
+            CFRelease(certs);
+        }
+        else {
+            // No trust and no certs, wait more.
+            continue;
+        }
+    }
+      
+    if (count == 0) {
       // No certificates, wait more.
       continue;
     }
-    CFRelease(certs);
+    
     break;
   }
   
@@ -1148,29 +1176,53 @@ static carray * mailstream_low_cfstream_get_certificate_chain(mailstream_low * s
 {
 #if HAVE_CFNETWORK
   struct mailstream_cfstream_data * cfstream_data;
-  CFArrayRef certs;
   unsigned int i;
   carray * result;
+  CFArrayRef certs;
+  CFIndex count;
   
   cfstream_data = (struct mailstream_cfstream_data *) s->data;
-  certs = CFReadStreamCopyProperty(cfstream_data->readStream, kCFStreamPropertySSLPeerCertificates);
-  if (certs == NULL)
-    return NULL;
-  
-  result = carray_new(4);
-  for(i = 0 ; i < CFArrayGetCount(certs) ; i ++) {
-    SecCertificateRef cert = (SecCertificateRef) CFArrayGetValueAtIndex(certs, i);
-    CFDataRef data = SecCertificateCopyData(cert);
-    CFIndex length = CFDataGetLength(data);
-    const UInt8 * bytes = CFDataGetBytePtr(data);
-    MMAPString * str = mmap_string_sized_new(length);
-    mmap_string_append_len(str, (char*) bytes, length);
-    carray_add(result, str, NULL);
-    CFRelease(data);
+    
+  SecTrustRef secTrust = (SecTrustRef)CFReadStreamCopyProperty(cfstream_data->readStream, kCFStreamPropertySSLPeerTrust);
+  if (secTrust) {
+      // SecTrustEvaluate() needs to be called before SecTrustGetCertificateCount() in Mac OS X <= 10.8
+      SecTrustEvaluate(secTrust, NULL);
+      count = SecTrustGetCertificateCount(secTrust);
+      result = carray_new(4);
+      for(i = 0 ; i < count ; i ++) {
+          SecCertificateRef cert = (SecCertificateRef) SecTrustGetCertificateAtIndex(secTrust, i);
+          CFDataRef data = SecCertificateCopyData(cert);
+          CFIndex length = CFDataGetLength(data);
+          const UInt8 * bytes = CFDataGetBytePtr(data);
+          MMAPString * str = mmap_string_sized_new(length);
+          mmap_string_append_len(str, (char*) bytes, length);
+          carray_add(result, str, NULL);
+          CFRelease(data);
+      }
+      CFRelease(secTrust);
   }
-  
-  CFRelease(certs);
-  
+  else {
+      certs = CFReadStreamCopyProperty(cfstream_data->readStream, kCFStreamPropertySSLPeerCertificates);
+      if (certs) {
+          count = CFArrayGetCount(certs);
+          result = carray_new(4);
+          for(i = 0 ; i < count ; i ++) {
+              SecCertificateRef cert = (SecCertificateRef) CFArrayGetValueAtIndex(certs, i);
+              CFDataRef data = SecCertificateCopyData(cert);
+              CFIndex length = CFDataGetLength(data);
+              const UInt8 * bytes = CFDataGetBytePtr(data);
+              MMAPString * str = mmap_string_sized_new(length);
+              mmap_string_append_len(str, (char*) bytes, length);
+              carray_add(result, str, NULL);
+              CFRelease(data);
+          }
+          CFRelease(certs);
+      }
+      else {
+          return NULL;
+      }
+  }
+    
   return result;
 #else
   return NULL;

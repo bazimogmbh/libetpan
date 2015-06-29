@@ -196,7 +196,12 @@ int mailsmtp_connect(mailsmtp * session, mailstream * s)
     session->stream = NULL;
     mailstream_close(s);
     return MAILSMTP_ERROR_SERVICE_NOT_AVAILABLE;
-      
+
+  case 0:
+    session->stream = NULL;
+    mailstream_close(s);
+    return MAILSMTP_ERROR_STREAM;
+
   default:
     session->stream = NULL;
     mailstream_close(s);
@@ -396,6 +401,9 @@ int mailsmtp_data(mailsmtp * session)
 
   case 503:
     return MAILSMTP_ERROR_BAD_SEQUENCE_OF_COMMAND;
+
+  case 0:
+    return MAILSMTP_ERROR_STREAM;
 
   default:
     return MAILSMTP_ERROR_UNEXPECTED_CODE;
@@ -978,6 +986,9 @@ int mailesmtp_starttls(mailsmtp * session)
   case 454:
     return MAILSMTP_ERROR_STARTTLS_TEMPORARY_FAILURE;
 
+  case 0:
+    return MAILSMTP_ERROR_STREAM;
+
   default:
     return MAILSMTP_ERROR_UNEXPECTED_CODE;
   }
@@ -990,7 +1001,7 @@ static int parse_response(mailsmtp * session,
   int code;
   int cont = 0;
 
-  code = strtol(response, &message, 10);
+  code = (int) strtol(response, &message, 10);
   if (* message == ' ')
     mmap_string_append(session->response_buffer, message + 1);
   else if (* message == '-') {
@@ -1140,14 +1151,14 @@ static int sasl_getsimple(void * context, int id,
     if (result != NULL)
       * result = session->smtp_sasl.sasl_login;
     if (len != NULL)
-      * len = strlen(session->smtp_sasl.sasl_login);
+      * len = (unsigned) strlen(session->smtp_sasl.sasl_login);
     return SASL_OK;
     
   case SASL_CB_AUTHNAME:
     if (result != NULL)
       * result = session->smtp_sasl.sasl_auth_name;
     if (len != NULL)
-      * len = strlen(session->smtp_sasl.sasl_auth_name);
+      * len = (unsigned) strlen(session->smtp_sasl.sasl_auth_name);
     return SASL_OK;
   }
   
@@ -1300,6 +1311,10 @@ int mailesmtp_auth_sasl(mailsmtp * session, const char * auth_type,
   while (1) {
     r = read_response(session);
     switch (r) {
+    case 0:
+      res = MAILSMTP_ERROR_STREAM;
+      goto free_sasl_conn;
+        
     case 220:
     case 235:
       res = MAILSMTP_NO_ERROR;
@@ -1316,7 +1331,7 @@ int mailesmtp_auth_sasl(mailsmtp * session, const char * auth_type,
     
     case 334:
       {
-        size_t response_len;
+        unsigned int response_len;
         char * decoded;
         unsigned int decoded_len;
         unsigned int max_decoded;
@@ -1331,7 +1346,7 @@ int mailesmtp_auth_sasl(mailsmtp * session, const char * auth_type,
           * p = '\0';
         }
         
-        response_len = strlen(session->response);
+        response_len = (unsigned int) strlen(session->response);
         max_decoded = response_len * 3 / 4;
         decoded = malloc(max_decoded + 1);
         if (decoded == NULL) {
