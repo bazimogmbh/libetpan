@@ -458,7 +458,7 @@ imap_mailstorage_get_folder_session(struct mailstorage * storage,
       goto err;
     }
 
-    r = mailsession_select_folder(session, pathname);
+    r = mailsession_examine_folder(session, pathname);
     if (r != MAIL_NO_ERROR) {
       mailsession_logout(session);
       res = r;
