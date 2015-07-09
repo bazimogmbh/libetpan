@@ -60,6 +60,8 @@
 #include "mailimap_print.h"
 #endif
 
+LIBETPAN_EXPORT
+int app_password_required = 0; // global flag - did login fail with "app password required" GMail error?
 /*
   RFC 2060 : IMAP4rev1
   draft-crispin-imapv-15
@@ -1525,6 +1527,14 @@ int mailimap_login(mailimap * session,
     return r;
 
   error_code = response->rsp_resp_done->rsp_data.rsp_tagged->rsp_cond_state->rsp_type;
+  // Check for "Application-specific password required" response from GMail
+  app_password_required = 0;
+  if (error_code == MAILIMAP_RESP_COND_STATE_NO
+      && response->rsp_resp_done->rsp_data.rsp_tagged->rsp_cond_state->rsp_text != NULL
+      && response->rsp_resp_done->rsp_data.rsp_tagged->rsp_cond_state->rsp_text->rsp_text != NULL
+      ) {
+    app_password_required = strncasecmp("Application-specific password required", response->rsp_resp_done->rsp_data.rsp_tagged->rsp_cond_state->rsp_text->rsp_text, strlen("Application-specific password required")) == 0;
+  }
 
   mailimap_response_free(response);
 
