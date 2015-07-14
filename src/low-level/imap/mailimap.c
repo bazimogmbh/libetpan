@@ -62,6 +62,13 @@
 
 LIBETPAN_EXPORT
 int app_password_required = 0; // global flag - did login fail with "app password required" GMail error?
+
+LIBETPAN_EXPORT
+int browser_login_required = 0; // global flag - did login fail with "Please log in via your web browser" GMail error?
+
+LIBETPAN_EXPORT
+char *imap_login_err_text = NULL; // global - text of last NO message on login
+
 /*
   RFC 2060 : IMAP4rev1
   draft-crispin-imapv-15
@@ -1490,6 +1497,12 @@ int mailimap_login(mailimap * session,
   struct mailimap_response * response;
   int r;
   int error_code;
+  
+  if (imap_login_err_text != NULL) {
+    free(imap_login_err_text); // clear any old error text
+    imap_login_err_text = NULL;
+  }
+
 
   if (session->imap_state != MAILIMAP_STATE_NON_AUTHENTICATED)
     return MAILIMAP_ERROR_BAD_STATE;
@@ -1527,13 +1540,19 @@ int mailimap_login(mailimap * session,
     return r;
 
   error_code = response->rsp_resp_done->rsp_data.rsp_tagged->rsp_cond_state->rsp_type;
-  // Check for "Application-specific password required" response from GMail
+  // Check for "Application-specific password required" or "log in via browser" responses from GMail
   app_password_required = 0;
+  browser_login_required = 0;
   if (error_code == MAILIMAP_RESP_COND_STATE_NO
       && response->rsp_resp_done->rsp_data.rsp_tagged->rsp_cond_state->rsp_text != NULL
       && response->rsp_resp_done->rsp_data.rsp_tagged->rsp_cond_state->rsp_text->rsp_text != NULL
       ) {
+    // save error text globally
+    imap_login_err_text = malloc(1+strlen(response->rsp_resp_done->rsp_data.rsp_tagged->rsp_cond_state->rsp_text->rsp_text));
+    
+    strcpy(imap_login_err_text, response->rsp_resp_done->rsp_data.rsp_tagged->rsp_cond_state->rsp_text->rsp_text);
     app_password_required = strncasecmp("Application-specific password required", response->rsp_resp_done->rsp_data.rsp_tagged->rsp_cond_state->rsp_text->rsp_text, strlen("Application-specific password required")) == 0;
+    browser_login_required = strncasecmp("Please log in via your web browser", response->rsp_resp_done->rsp_data.rsp_tagged->rsp_cond_state->rsp_text->rsp_text, strlen("Please log in via your web browser")) == 0;
   }
 
   mailimap_response_free(response);
