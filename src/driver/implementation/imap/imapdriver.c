@@ -417,11 +417,29 @@ static int imapdriver_check_folder(mailsession * session)
 static int imapdriver_examine_folder(mailsession * session, const char * mb)
 {
   int r;
+  char * new_mb;
+  char * old_mb;
 
   r = mailimap_examine(get_imap_session(session), mb);
 
-  return imap_error_to_mail_error(r);
-}
+  switch (r) {
+    case MAILIMAP_NO_ERROR:
+      new_mb = strdup(mb);
+      if (new_mb == NULL) {
+        if (old_mb != NULL)
+          free(old_mb);
+        get_data(session)->imap_mailbox = NULL;
+        return MAIL_ERROR_MEMORY;
+      }
+      
+      if (old_mb != NULL)
+        free(old_mb);
+      get_data(session)->imap_mailbox = new_mb;
+      
+      return MAIL_NO_ERROR;
+    default:
+      return imap_error_to_mail_error(r);
+  }}
 
 static int imapdriver_select_folder(mailsession * session, const char * mb)
 {
