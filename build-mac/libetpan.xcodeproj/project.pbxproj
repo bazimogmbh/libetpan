@@ -2517,6 +2517,7 @@
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/..",
 					"$(SRCROOT)/include",
+					/usr/local/opt/openssl/include,
 				);
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = (
@@ -2537,6 +2538,7 @@
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/..",
 					"$(SRCROOT)/include",
+					/usr/local/opt/openssl/include,
 				);
 				OTHER_CFLAGS = (
 					"-DHAVE_CFNETWORK=1",
