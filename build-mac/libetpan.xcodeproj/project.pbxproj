@@ -542,12 +542,10 @@
 		C6F9ED2D105335BD0059C3BA /* mailsmtp_socket.c in Sources */ = {isa = PBXBuildFile; fileRef = C6F9EAB4105335BC0059C3BA /* mailsmtp_socket.c */; };
 		C6F9ED2F105335BD0059C3BA /* mailsmtp_ssl.c in Sources */ = {isa = PBXBuildFile; fileRef = C6F9EAB6105335BC0059C3BA /* mailsmtp_ssl.c */; };
 		C6F9ED39105335BD0059C3BA /* libetpan_version.c in Sources */ = {isa = PBXBuildFile; fileRef = C6F9EAC2105335BD0059C3BA /* libetpan_version.c */; };
-		C6F9ED9E105339200059C3BA /* libssl.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C6F9ED9D105339200059C3BA /* libssl.dylib */; };
 		C6F9EDA6105339380059C3BA /* libsasl2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C6F9EDA5105339380059C3BA /* libsasl2.dylib */; };
 		C6F9EDAB1053394C0059C3BA /* libiconv.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C6F9EDAA1053394C0059C3BA /* libiconv.dylib */; };
 		C6F9EDAD1053395A0059C3BA /* libexpat.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C6F9EDAC1053395A0059C3BA /* libexpat.dylib */; };
 		C6F9EDB2105339650059C3BA /* libcurl.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C6F9EDB1105339650059C3BA /* libcurl.dylib */; };
-		C6F9EDBE105339EA0059C3BA /* libcrypto.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C6F9EDBD105339EA0059C3BA /* libcrypto.dylib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -970,12 +968,10 @@
 		C6F9EAB8105335BC0059C3BA /* mailsmtp_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mailsmtp_types.h; sourceTree = "<group>"; };
 		C6F9EAC1105335BD0059C3BA /* libetpan.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = libetpan.h; sourceTree = "<group>"; };
 		C6F9EAC2105335BD0059C3BA /* libetpan_version.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = libetpan_version.c; sourceTree = "<group>"; };
-		C6F9ED9D105339200059C3BA /* libssl.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libssl.dylib; path = /usr/lib/libssl.dylib; sourceTree = "<absolute>"; };
 		C6F9EDA5105339380059C3BA /* libsasl2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsasl2.dylib; path = /usr/lib/libsasl2.dylib; sourceTree = "<absolute>"; };
 		C6F9EDAA1053394C0059C3BA /* libiconv.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.dylib; path = /usr/lib/libiconv.dylib; sourceTree = "<absolute>"; };
 		C6F9EDAC1053395A0059C3BA /* libexpat.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libexpat.dylib; path = /usr/lib/libexpat.dylib; sourceTree = "<absolute>"; };
 		C6F9EDB1105339650059C3BA /* libcurl.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcurl.dylib; path = /usr/lib/libcurl.dylib; sourceTree = "<absolute>"; };
-		C6F9EDBD105339EA0059C3BA /* libcrypto.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcrypto.dylib; path = /usr/lib/libcrypto.dylib; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -984,12 +980,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				C69BA86017DF63CA00D601B7 /* libz.dylib in Frameworks */,
-				C6F9ED9E105339200059C3BA /* libssl.dylib in Frameworks */,
 				C6F9EDA6105339380059C3BA /* libsasl2.dylib in Frameworks */,
 				C6F9EDAB1053394C0059C3BA /* libiconv.dylib in Frameworks */,
 				C6F9EDAD1053395A0059C3BA /* libexpat.dylib in Frameworks */,
 				C6F9EDB2105339650059C3BA /* libcurl.dylib in Frameworks */,
-				C6F9EDBE105339EA0059C3BA /* libcrypto.dylib in Frameworks */,
 				C6EFB8AE1433F58500F805C0 /* CoreFoundation.framework in Frameworks */,
 				C6EFB8B41433F5A400F805C0 /* CoreServices.framework in Frameworks */,
 				C6ED6CF717A185FD00A4A14C /* Security.framework in Frameworks */,
@@ -1694,12 +1688,10 @@
 		C6F9ED9A105338F60059C3BA /* Libraries */ = {
 			isa = PBXGroup;
 			children = (
-				C6F9EDBD105339EA0059C3BA /* libcrypto.dylib */,
 				C6F9EDB1105339650059C3BA /* libcurl.dylib */,
 				C6F9EDAC1053395A0059C3BA /* libexpat.dylib */,
 				C6F9EDAA1053394C0059C3BA /* libiconv.dylib */,
 				C6F9EDA5105339380059C3BA /* libsasl2.dylib */,
-				C6F9ED9D105339200059C3BA /* libssl.dylib */,
 				C69BA85F17DF63C900D601B7 /* libz.dylib */,
 			);
 			name = Libraries;
@@ -2636,6 +2628,10 @@
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				INSTALL_PATH = /usr/local/lib;
+				OTHER_LDFLAGS = (
+					/usr/local/opt/openssl/lib/libssl.a,
+					/usr/local/opt/openssl/lib/libcrypto.a,
+				);
 				PRODUCT_NAME = etpan;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -2651,6 +2647,10 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_MODEL_TUNING = G5;
 				INSTALL_PATH = /usr/local/lib;
+				OTHER_LDFLAGS = (
+					/usr/local/opt/openssl/lib/libssl.a,
+					/usr/local/opt/openssl/lib/libcrypto.a,
+				);
 				PRODUCT_NAME = etpan;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
